@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  mainsvc:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    restart: "always"
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      ordersdb:
+        condition: service_healthy
+    environment:
+      DB_URL: "postgres://ordersdb:ordersdb@ordersdb:5432/ordersdb"
+
+  nats:
+    image: "nats-streaming:0.25.5-alpine"
+    restart: "always"
+    ports:
+      - "127.0.0.1:4222:4222"
+
+  ordersdb:
+    image: postgres:15.3-alpine3.18
+    restart: "always"
+    ports:
+      - "127.0.0.1:6543:5432"
+    environment:
+      PGUSER: ordersdb
+      POSTGRES_USER: ordersdb
+      POSTGRES_PASSWORD: ordersdb
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
