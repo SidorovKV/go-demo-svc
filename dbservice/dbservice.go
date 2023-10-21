@@ -173,6 +173,7 @@ VALUES ($1, $2) ON CONFLICT DO NOTHING
 	}
 	err = ds.SendBatch(context.Background(), batch).Close()
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 	return nil

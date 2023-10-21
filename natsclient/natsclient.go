@@ -40,7 +40,6 @@ func NewNatsClient() (*NatsClient, error) {
 }
 
 func (nc *NatsClient) Run(db *dbservice.DbService, cache *cache.Cache, workersNum int) {
-	defer nc.Close()
 	wg := new(sync.WaitGroup)
 	mu := new(sync.Mutex)
 	for i := 0; i <= workersNum; i++ {
