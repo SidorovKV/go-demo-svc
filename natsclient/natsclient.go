@@ -7,6 +7,7 @@ import (
 	"go-demo-svc/cache"
 	"go-demo-svc/model"
 	"log"
+	"os"
 	"sync"
 )
 
@@ -33,8 +34,7 @@ func NewNatsClient(db PersistenceService) (*NatsClient, error) {
 	streamClient, err := stan.Connect(
 		clusterID,
 		clientID,
-		//stan.NatsURL("nats://nats:4222"),
-		stan.NatsURL("nats://localhost:4222"),
+		stan.NatsURL(os.Getenv("NATS_URL")),
 	)
 	if err != nil {
 		return nil, err
