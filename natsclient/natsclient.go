@@ -5,7 +5,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/nats-io/stan.go"
 	"go-demo-svc/cache"
-	"go-demo-svc/dbservice"
 	"go-demo-svc/model"
 	"log"
 	"sync"
@@ -19,16 +18,23 @@ const (
 	queueID   = "test-queue"
 )
 
+type PersistenceService interface {
+	AddOrder(model.Order) error
+	RestoreCache() (map[string]model.Order, error)
+}
+
 type NatsClient struct {
 	stan.Conn
 	validate *validator.Validate
+	PersistenceService
 }
 
-func NewNatsClient() (*NatsClient, error) {
+func NewNatsClient(db PersistenceService) (*NatsClient, error) {
 	streamClient, err := stan.Connect(
 		clusterID,
 		clientID,
-		stan.NatsURL("nats://nats:4222"),
+		//stan.NatsURL("nats://nats:4222"),
+		stan.NatsURL("nats://localhost:4222"),
 	)
 	if err != nil {
 		return nil, err
@@ -36,22 +42,21 @@ func NewNatsClient() (*NatsClient, error) {
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
-	return &NatsClient{streamClient, validate}, nil
+	return &NatsClient{streamClient, validate, db}, nil
 }
 
-func (nc *NatsClient) Run(db *dbservice.DbService, cache *cache.Cache, workersNum int) {
+func (nc *NatsClient) Run(cache cache.CacheService, workersNum int) {
 	wg := new(sync.WaitGroup)
 	mu := new(sync.Mutex)
 	for i := 0; i <= workersNum; i++ {
 		wg.Add(1)
-		go nc.runWorker(db, cache, wg, mu, i)
+		go nc.runWorker(cache, wg, mu, i)
 	}
 	wg.Wait()
 }
 
 func (nc *NatsClient) runWorker(
-	db *dbservice.DbService,
-	cache *cache.Cache,
+	cache cache.CacheService,
 	wg *sync.WaitGroup,
 	mu *sync.Mutex,
 	workerID int,
@@ -59,7 +64,7 @@ func (nc *NatsClient) runWorker(
 
 	defer wg.Done()
 
-	_, err := nc.QueueSubscribe(channel, queueID, nc.processOrder(db, cache, mu),
+	_, err := nc.QueueSubscribe(channel, queueID, nc.processOrder(cache, mu),
 		stan.DurableName(durableID),
 		stan.MaxInflight(20),
 	)
@@ -71,7 +76,7 @@ func (nc *NatsClient) runWorker(
 	}
 }
 
-func (nc *NatsClient) processOrder(db *dbservice.DbService, cache *cache.Cache, mu *sync.Mutex) stan.MsgHandler {
+func (nc *NatsClient) processOrder(cache cache.CacheService, mu *sync.Mutex) stan.MsgHandler {
 	return func(msg *stan.Msg) {
 		var order model.Order
 		err := json.Unmarshal(msg.Data, &order)
@@ -83,7 +88,7 @@ func (nc *NatsClient) processOrder(db *dbservice.DbService, cache *cache.Cache, 
 				mu.Lock()
 				cache.Add(order.OrderUID, order)
 				mu.Unlock()
-				err = db.AddOrder(order)
+				err = nc.AddOrder(order)
 				if err != nil {
 					log.Println(err)
 				}

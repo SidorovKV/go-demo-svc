@@ -10,8 +10,7 @@ import (
 )
 
 type MainService struct {
-	cache *cache.Cache
-	db    *dbservice.DbService
+	cache cache.CacheService
 	nc    *natsclient.NatsClient
 }
 
@@ -28,13 +27,12 @@ func NewMainService() (*MainService, error) {
 
 	ca := cache.NewCache(orders)
 
-	nc, err := natsclient.NewNatsClient()
+	nc, err := natsclient.NewNatsClient(db)
 	if err != nil {
 		return nil, err
 	}
 	out := &MainService{
 		ca,
-		db,
 		nc,
 	}
 	return out, nil
@@ -42,7 +40,7 @@ func NewMainService() (*MainService, error) {
 
 func (ms MainService) Start(workersNum int) {
 	go func() {
-		ms.nc.Run(ms.db, ms.cache, workersNum)
+		ms.nc.Run(ms.cache, workersNum)
 	}()
 	http.HandleFunc("/api/order/", ms.handler)
 

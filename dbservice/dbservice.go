@@ -9,7 +9,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go-demo-svc/model"
 	"log"
-	"os"
 )
 
 type PgxIface interface {
@@ -110,7 +109,7 @@ CREATE TABLE IF NOT EXISTS track (
 )
 
 func NewDbService() (*DbService, error) {
-	conn, err := pgxpool.New(context.Background(), os.Getenv("DB_URL"))
+	conn, err := pgxpool.New(context.Background(), "postgres://testuser:@localhost:5432/shareit") //os.Getenv("DB_URL"))
 	if err != nil {
 		return nil, err
 	}

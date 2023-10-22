@@ -4,6 +4,11 @@ import (
 	"go-demo-svc/model"
 )
 
+type CacheService interface {
+	Get(orderUID string) (model.Order, bool)
+	Add(OrderUID string, order model.Order)
+}
+
 type Cache struct {
 	orders map[string]model.Order
 }
