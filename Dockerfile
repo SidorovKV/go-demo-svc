@@ -3,7 +3,7 @@ WORKDIR /build
 ADD go.mod .
 COPY . .
 
-RUN go build -o demo ./cmd/demo.go
+RUN go build -o demo ./cmd/demoservice/demo.go
 
 FROM alpine
 WORKDIR /build

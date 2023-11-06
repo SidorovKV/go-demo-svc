@@ -11,7 +11,7 @@ services:
       ordersdb:
         condition: service_healthy
     environment:
-      DB_URL: "postgres://ordersdb:ordersdb@ordersdb:5432/ordersdb"
+      DB_URL: "postgres://ordersdb:ordersdb@orderdb:5432/ordersdb"
       NATS_URL: "nats://nats:4222"
 
   nats:
@@ -21,6 +21,7 @@ services:
       - "127.0.0.1:4222:4222"
 
   ordersdb:
+    container_name: orderdb
     image: postgres:15.3-alpine3.18
     restart: "always"
     ports:
